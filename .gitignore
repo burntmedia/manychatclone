@@ -1,8 +1,4 @@
 node_modules
 backend/node_modules
-backend/.env
-backend/data/keywords.json
-backend/data/automations.json
-backend/data/logs.json
 *.log
 .DS_Store
