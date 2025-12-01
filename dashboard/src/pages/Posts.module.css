@@ -1,0 +1,96 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.kicker {
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin: 0;
+  font-weight: 700;
+}
+
+.title {
+  margin: 6px 0 2px;
+}
+
+.subtitle {
+  color: #6b7280;
+  margin: 0;
+}
+
+.secondaryButton {
+  border: 1px solid #e5e7eb;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.banner {
+  padding: 12px 14px;
+  background: #fef3c7;
+  border: 1px solid #facc15;
+  color: #92400e;
+  border-radius: 12px;
+}
+
+.muted {
+  color: #6b7280;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.caption {
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.meta {
+  color: #6b7280;
+  margin: 0;
+}
+
+.metrics {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #4b5563;
+}
+
+.linkButton {
+  border: none;
+  background: #eef2ff;
+  color: #4338ca;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}

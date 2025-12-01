@@ -1,0 +1,68 @@
+.sidebar {
+  background: linear-gradient(180deg, #0f172a, #111827);
+  color: #e5e7eb;
+  width: 240px;
+  min-height: 100vh;
+  padding: 28px 20px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.brand {
+  font-weight: 700;
+  font-size: 1.2rem;
+  letter-spacing: 0.4px;
+  margin-bottom: 24px;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  color: inherit;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  font-weight: 500;
+}
+
+.navLink:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.active {
+  background: rgba(99, 102, 241, 0.15);
+  color: #c7d2fe;
+  box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.4);
+}
+
+.icon {
+  font-size: 1.1rem;
+}
+
+.helpCard {
+  margin-top: auto;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 14px;
+  border-radius: 12px;
+  color: #cbd5e1;
+}
+
+.helpTitle {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.helpText {
+  line-height: 1.4;
+  font-size: 0.9rem;
+}
