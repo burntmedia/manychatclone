@@ -38,7 +38,6 @@ function upsertKeyword({ scope = 'global', postId, keywordConfig }) {
   if (scope === 'global') {
     store.global = upsertList(store.global || [], keywordConfig);
   } else if (scope === 'post' && postId) {
-    store.posts = store.posts || {};
     const current = store.posts[postId] || [];
     store.posts[postId] = upsertList(current, keywordConfig);
   } else {

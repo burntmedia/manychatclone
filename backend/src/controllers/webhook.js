@@ -9,17 +9,10 @@ function handleVerification(req, res, query) {
   const challenge = query['hub.challenge'];
 
   if (mode === 'subscribe' && token === process.env.VERIFY_TOKEN) {
-    log('Webhook verified');
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end(challenge);
     return;
   }
-
-  log('Webhook verification failed', {
-    mode,
-    tokenProvided: Boolean(token),
-    expectedTokenSet: Boolean(process.env.VERIFY_TOKEN)
-  });
 
   res.writeHead(403);
   res.end();
