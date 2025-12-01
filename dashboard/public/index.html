@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Keyword Automations</title>
+  <style>
+    :root {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      color: #0f172a;
+      background: #f8fafc;
+    }
+    body {
+      margin: 0;
+      padding: 24px;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    h1 {
+      font-size: 24px;
+      margin: 0;
+    }
+    .panel {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      margin: 12px 0 4px;
+    }
+    input, textarea, select, button {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 14px;
+      background: #fff;
+    }
+    textarea {
+      min-height: 70px;
+      resize: vertical;
+    }
+    button {
+      margin-top: 16px;
+      background: #2563eb;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 12px;
+    }
+    .keyword-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .keyword-card h3 {
+      margin: 0 0 8px;
+      font-size: 16px;
+    }
+    .muted {
+      color: #64748b;
+      font-size: 13px;
+    }
+    .status {
+      margin-top: 8px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Keyword automation setup</h1>
+      <p class="muted">Create or edit keywords without touching JSON. Changes save to <code>data/keywords.json</code>.</p>
+    </div>
+    <div class="status" id="status"></div>
+  </header>
+
+  <section class="panel">
+    <h2>Add or update a keyword</h2>
+    <form id="keyword-form">
+      <label for="scope">Scope</label>
+      <select id="scope" name="scope">
+        <option value="global">Global (all posts)</option>
+        <option value="post">Post-specific</option>
+      </select>
+
+      <div id="post-id-group" style="display: none;">
+        <label for="postId">Post ID</label>
+        <input id="postId" name="postId" placeholder="1234567890" />
+      </div>
+
+      <label for="keyword">Keyword</label>
+      <input id="keyword" name="keyword" placeholder="guide" required />
+
+      <label for="variants">Variants (comma-separated)</label>
+      <input id="variants" name="variants" placeholder="guide, gide" />
+
+      <label for="commentReplies">Public reply templates (one per line)</label>
+      <textarea id="commentReplies" name="commentReplies" placeholder="Thanks for reaching out about {{keyword}}!"></textarea>
+
+      <label for="dmReplies">DM templates (one per line)</label>
+      <textarea id="dmReplies" name="dmReplies" placeholder="Here's your link: {{resourceUrl}}"></textarea>
+
+      <label for="resourceUrl">Resource URL (optional)</label>
+      <input id="resourceUrl" name="resourceUrl" placeholder="https://example.com/resource" />
+
+      <button type="submit" id="submit-btn">Save keyword</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2>Configured keywords</h2>
+    <div id="keyword-list">
+      <p class="muted">Loading...</p>
+    </div>
+  </section>
+
+  <script>
+    const form = document.getElementById('keyword-form');
+    const scopeSelect = document.getElementById('scope');
+    const postGroup = document.getElementById('post-id-group');
+    const statusEl = document.getElementById('status');
+    const keywordList = document.getElementById('keyword-list');
+    const submitBtn = document.getElementById('submit-btn');
+
+    scopeSelect.addEventListener('change', () => {
+      postGroup.style.display = scopeSelect.value === 'post' ? 'block' : 'none';
+    });
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const formData = new FormData(form);
+      const scope = formData.get('scope');
+      const postId = formData.get('postId');
+      const keyword = formData.get('keyword');
+      const variants = toList(formData.get('variants'), ',');
+      const commentReplies = toList(formData.get('commentReplies'), '\n');
+      const dmReplies = toList(formData.get('dmReplies'), '\n');
+      const resourceUrl = formData.get('resourceUrl');
+
+      submitBtn.disabled = true;
+      setStatus('Saving...', 'muted');
+
+      const payload = { scope, keyword, variants, commentReplies, dmReplies, resourceUrl };
+      if (scope === 'post') {
+        payload.postId = postId;
+      }
+
+      try {
+        const res = await fetch('/api/keywords', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Failed to save keyword');
+        }
+
+        setStatus('Saved', 'muted');
+        form.reset();
+        scopeSelect.value = 'global';
+        postGroup.style.display = 'none';
+        await loadKeywords();
+      } catch (error) {
+        setStatus(error.message, 'error');
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+
+    function toList(value, delimiter) {
+      if (!value) return [];
+      return value
+        .split(delimiter)
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+
+    async function loadKeywords() {
+      try {
+        const res = await fetch('/api/keywords');
+        const data = await res.json();
+        renderKeywords(data);
+      } catch (error) {
+        keywordList.innerHTML = '<p class="muted">Unable to load keywords.</p>';
+      }
+    }
+
+    function renderKeywords(data) {
+      const { global = [], posts = {} } = data;
+      const items = [];
+
+      if (!global.length && !Object.keys(posts).length) {
+        keywordList.innerHTML = '<p class="muted">No keywords saved yet.</p>';
+        return;
+      }
+
+      if (global.length) {
+        items.push(`<div class="keyword-card"><h3>Global keywords</h3>${renderKeywordList(global)}</div>`);
+      }
+
+      Object.entries(posts).forEach(([postId, list]) => {
+        items.push(`<div class="keyword-card"><h3>Post ${postId}</h3>${renderKeywordList(list)}</div>`);
+      });
+
+      keywordList.innerHTML = `<div class="grid">${items.join('')}</div>`;
+    }
+
+    function renderKeywordList(list) {
+      if (!list.length) return '<p class="muted">No keywords</p>';
+      return `<ul>${list
+        .map(
+          (item) => `<li><strong>${escapeHtml(item.keyword)}</strong> — variants: ${formatList(item.variants)}<br /><span class="muted">Comments: ${formatList(item.commentReplies)} | DMs: ${formatList(item.dmReplies)}</span></li>`
+        )
+        .join('')}</ul>`;
+    }
+
+    function formatList(values) {
+      if (!values || !values.length) return 'None';
+      return values.map((v) => escapeHtml(v)).join(', ');
+    }
+
+    function escapeHtml(str = '') {
+      return str.replace(/[&<>'"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    function setStatus(message, tone = 'muted') {
+      const color = tone === 'error' ? '#dc2626' : '#64748b';
+      statusEl.style.color = color;
+      statusEl.textContent = message;
+    }
+
+    loadKeywords();
+  </script>
+</body>
+</html>
