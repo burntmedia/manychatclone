@@ -1,0 +1,28 @@
+{
+  "global": [
+    {
+      "keyword": "info",
+      "variants": ["info", "information"],
+      "commentReplies": ["Thanks for asking about our resources! Check your DMs for details."],
+      "dmReplies": ["Here is the resource link you asked for: {{resourceUrl}}"],
+      "resourceUrl": "https://example.com/global-resource"
+    }
+  ],
+  "posts": {
+    "17890000000000000": [
+      {
+        "keyword": "guide",
+        "variants": ["guide", "gide", "GUIDE"],
+        "commentReplies": [
+          "Thanks for your interest in the guide! We just sent you a DM.",
+          "Appreciate the comment about the guide. Check your inbox for the link."
+        ],
+        "dmReplies": [
+          "Here's the guide you asked for: {{resourceUrl}}",
+          "Thanks for commenting! You can download the guide here: {{resourceUrl}}"
+        ],
+        "resourceUrl": "https://example.com/campaign-guide"
+      }
+    ]
+  }
+}
