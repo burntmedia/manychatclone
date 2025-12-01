@@ -1,0 +1,5 @@
+{
+  "commentReplies": ["Thanks for dropping the keyword {{keyword}}!"],
+  "dmReplies": ["Here's the resource you asked about: {{resourceUrl}}"],
+  "resourceUrl": "https://example.com/guide"
+}
