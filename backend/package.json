@@ -1,0 +1,17 @@
+{
+  "name": "manychatclone-backend",
+  "version": "0.1.0",
+  "description": "Self-hosted keyword responder for Meta comments",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "NODE_ENV=development node --watch src/index.js",
+    "test": "node scripts/smoke.js"
+  },
+  "keywords": ["meta", "instagram", "facebook", "webhook"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {}
+}
