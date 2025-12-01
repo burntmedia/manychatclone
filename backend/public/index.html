@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Automation Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      color: #0f172a;
+      background: #0b1224;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at 10% 20%, rgba(79, 70, 229, 0.2), transparent 25%),
+                  radial-gradient(circle at 80% 0%, rgba(16, 185, 129, 0.15), transparent 25%),
+                  #0b1224;
+      min-height: 100vh;
+      padding: 24px;
+      color: #e2e8f0;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+    .title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 24px;
+      letter-spacing: -0.02em;
+    }
+    .badge {
+      background: rgba(16, 185, 129, 0.15);
+      color: #22c55e;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 13px;
+    }
+    .muted { color: #94a3b8; }
+    .layout {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      align-items: start;
+    }
+    .panel {
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      box-shadow: 0 18px 40px rgba(0,0,0,0.2);
+      border-radius: 16px;
+      padding: 18px;
+      backdrop-filter: blur(8px);
+    }
+    .panel h2 {
+      margin: 0 0 12px;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .pill {
+      background: rgba(79, 70, 229, 0.15);
+      color: #c7d2fe;
+      padding: 4px 10px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+    .section-body { color: #cbd5e1; font-size: 14px; }
+    label { display: block; margin: 10px 0 6px; font-weight: 600; }
+    input, textarea, select {
+      width: 100%;
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      border-radius: 10px;
+      color: #e2e8f0;
+      font-size: 14px;
+    }
+    textarea { min-height: 70px; resize: vertical; }
+    button {
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #6366f1, #22c55e);
+      color: #fff;
+      font-weight: 700;
+      padding: 12px 14px;
+      font-size: 14px;
+      cursor: pointer;
+      margin-top: 14px;
+      width: 100%;
+      box-shadow: 0 10px 24px rgba(99, 102, 241, 0.25);
+    }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .grid-two { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .stat {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .stat strong { display: block; font-size: 16px; }
+    .chip { display: inline-block; padding: 4px 8px; background: rgba(148, 163, 184, 0.2); border-radius: 8px; margin-right: 6px; }
+    ul { padding-left: 16px; }
+    .keyword-card { border-bottom: 1px solid rgba(148, 163, 184, 0.2); padding: 10px 0; }
+    .keyword-card:last-child { border-bottom: none; }
+    .log-row { display: grid; grid-template-columns: 130px 1fr; gap: 10px; padding: 10px 0; border-bottom: 1px solid rgba(148, 163, 184, 0.12); }
+    .log-row:last-child { border-bottom: none; }
+    code { background: rgba(148, 163, 184, 0.18); padding: 2px 6px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script crossorigin src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const fetchJson = (url, options) => fetch(url, options).then((r) => r.json());
+
+    function App() {
+      const [keywords, setKeywords] = useState({ global: [], posts: {} });
+      const [replies, setReplies] = useState({ commentReplies: [], dmReplies: [], resourceUrl: '' });
+      const [status, setStatus] = useState(null);
+      const [logs, setLogs] = useState([]);
+      const [savingKeyword, setSavingKeyword] = useState(false);
+      const [savingReplies, setSavingReplies] = useState(false);
+      const [form, setForm] = useState({ scope: 'global', postId: '', keyword: '', variants: '', commentReplies: '', dmReplies: '', resourceUrl: '' });
+
+      useEffect(() => {
+        loadKeywords();
+        loadReplies();
+        loadStatus();
+        loadLogs();
+      }, []);
+
+      const loadKeywords = async () => setKeywords(await fetchJson('/api/keywords'));
+      const loadReplies = async () => setReplies(await fetchJson('/api/replies'));
+      const loadStatus = async () => setStatus(await fetchJson('/api/status'));
+      const loadLogs = async () => setLogs(await fetchJson('/api/logs'));
+
+      const handleKeywordSubmit = async (e) => {
+        e.preventDefault();
+        setSavingKeyword(true);
+        try {
+          const payload = {
+            scope: form.scope,
+            keyword: form.keyword.trim(),
+            variants: splitList(form.variants),
+            commentReplies: splitList(form.commentReplies, '\n'),
+            dmReplies: splitList(form.dmReplies, '\n'),
+            resourceUrl: form.resourceUrl.trim()
+          };
+          if (form.scope === 'post') payload.postId = form.postId.trim();
+          const res = await fetch('/api/keywords', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+          if (!res.ok) throw new Error('Unable to save keyword');
+          await loadKeywords();
+          setForm({ scope: 'global', postId: '', keyword: '', variants: '', commentReplies: '', dmReplies: '', resourceUrl: '' });
+        } finally {
+          setSavingKeyword(false);
+        }
+      };
+
+      const handleRepliesSubmit = async (e) => {
+        e.preventDefault();
+        setSavingReplies(true);
+        try {
+          const payload = {
+            commentReplies: splitList(replies.commentReplies, '\n'),
+            dmReplies: splitList(replies.dmReplies, '\n'),
+            resourceUrl: replies.resourceUrl
+          };
+          const res = await fetch('/api/replies', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+          if (!res.ok) throw new Error('Unable to save replies');
+          setReplies(await res.json());
+        } finally {
+          setSavingReplies(false);
+        }
+      };
+
+      return (
+        <div>
+          <header>
+            <div className="title">
+              <h1>Meta Automation Console</h1>
+              <span className="badge">self-hosted</span>
+            </div>
+            <div className="muted">Configure keywords, replies, and check webhook/IG connectivity.</div>
+          </header>
+
+          <div className="layout">
+            <div className="panel">
+              <h2>Keywords <span className="pill">list & save</span></h2>
+              <KeywordForm form={form} setForm={setForm} onSubmit={handleKeywordSubmit} saving={savingKeyword} />
+              <KeywordList keywords={keywords} />
+            </div>
+
+            <div className="panel">
+              <h2>Automated replies <span className="pill">defaults</span></h2>
+              <RepliesForm replies={replies} setReplies={setReplies} onSubmit={handleRepliesSubmit} saving={savingReplies} />
+            </div>
+
+            <div className="panel">
+              <h2>Webhook status <span className="pill">health</span></h2>
+              {status ? <WebhookStatus status={status} /> : <p className="muted">Loading...</p>}
+            </div>
+
+            <div className="panel">
+              <h2>Connected Instagram <span className="pill">accounts</span></h2>
+              {status ? <InstagramStatus status={status} /> : <p className="muted">Loading...</p>}
+            </div>
+
+            <div className="panel" style={{ gridColumn: '1 / -1' }}>
+              <h2>Logs <span className="pill">latest</span></h2>
+              <LogsView logs={logs} />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const splitList = (value, delimiter = ',') => {
+      if (Array.isArray(value)) return value.map((v) => String(v).trim()).filter(Boolean);
+      return (value || '')
+        .split(delimiter)
+        .map((item) => item.trim())
+        .filter(Boolean);
+    };
+
+    function KeywordForm({ form, setForm, onSubmit, saving }) {
+      return (
+        <form onSubmit={onSubmit} className="section-body">
+          <label>Scope</label>
+          <select value={form.scope} onChange={(e) => setForm({ ...form, scope: e.target.value })}>
+            <option value="global">Global</option>
+            <option value="post">Post-specific</option>
+          </select>
+          {form.scope === 'post' && (
+            <div>
+              <label>Post ID</label>
+              <input value={form.postId} onChange={(e) => setForm({ ...form, postId: e.target.value })} placeholder="123456" required={form.scope === 'post'} />
+            </div>
+          )}
+          <label>Keyword</label>
+          <input value={form.keyword} onChange={(e) => setForm({ ...form, keyword: e.target.value })} placeholder="guide" required />
+          <label>Variants (comma separated)</label>
+          <input value={form.variants} onChange={(e) => setForm({ ...form, variants: e.target.value })} placeholder="guide, gide" />
+          <label>Comment replies (one per line)</label>
+          <textarea value={form.commentReplies} onChange={(e) => setForm({ ...form, commentReplies: e.target.value })} placeholder="Thanks for your comment about {{keyword}}!" />
+          <label>DM replies (one per line)</label>
+          <textarea value={form.dmReplies} onChange={(e) => setForm({ ...form, dmReplies: e.target.value })} placeholder="Here's your link: {{resourceUrl}}" />
+          <label>Resource URL</label>
+          <input value={form.resourceUrl} onChange={(e) => setForm({ ...form, resourceUrl: e.target.value })} placeholder="https://example.com" />
+          <button type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save keyword'}</button>
+        </form>
+      );
+    }
+
+    function KeywordList({ keywords }) {
+      const { global = [], posts = {} } = keywords || {};
+      if (!global.length && !Object.keys(posts).length) return <p className="muted">No keywords saved yet.</p>;
+      return (
+        <div className="section-body">
+          {global.length > 0 && <KeywordGroup title="Global" list={global} />}
+          {Object.entries(posts).map(([id, list]) => (
+            <KeywordGroup key={id} title={`Post ${id}`} list={list} />
+          ))}
+        </div>
+      );
+    }
+
+    function KeywordGroup({ title, list }) {
+      return (
+        <div className="keyword-card">
+          <strong>{title}</strong>
+          <ul>
+            {list.map((item) => (
+              <li key={item.keyword}>
+                <div><strong>{item.keyword}</strong> <span className="muted">({item.variants?.join(', ') || 'no variants'})</span></div>
+                <div className="muted">Comments: {item.commentReplies?.join(' | ') || '—'} · DMs: {item.dmReplies?.join(' | ') || '—'}</div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      );
+    }
+
+    function RepliesForm({ replies, setReplies, onSubmit, saving }) {
+      return (
+        <form onSubmit={onSubmit} className="section-body">
+          <label>Default comment replies</label>
+          <textarea value={replies.commentReplies?.join('\n') || ''} onChange={(e) => setReplies({ ...replies, commentReplies: e.target.value.split('\n') })} />
+          <label>Default DM replies</label>
+          <textarea value={replies.dmReplies?.join('\n') || ''} onChange={(e) => setReplies({ ...replies, dmReplies: e.target.value.split('\n') })} />
+          <label>Default resource URL</label>
+          <input value={replies.resourceUrl || ''} onChange={(e) => setReplies({ ...replies, resourceUrl: e.target.value })} placeholder="https://example.com" />
+          <button type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save automated replies'}</button>
+        </form>
+      );
+    }
+
+    function WebhookStatus({ status }) {
+      const webhook = status.webhook || {};
+      return (
+        <div className="section-body">
+          <div className="grid-two">
+            <div className="stat">
+              <strong>Callback URL</strong>
+              <div className="muted">{webhook.callbackUrl || 'Set SERVER_URL to populate'}</div>
+            </div>
+            <div className="stat">
+              <strong>Verify token</strong>
+              <div className="muted">{webhook.verifyTokenSet ? 'Configured' : 'Missing VERIFY_TOKEN'}</div>
+            </div>
+          </div>
+          <p style={{ marginTop: 12 }}>Status: <span className="chip">{webhook.serverHealthy ? 'Server reachable' : 'Offline'}</span></p>
+        </div>
+      );
+    }
+
+    function InstagramStatus({ status }) {
+      const ig = status.instagram || {};
+      return (
+        <div className="section-body">
+          <div className="grid-two">
+            <div className="stat">
+              <strong>Instagram Business ID</strong>
+              <div className="muted">{ig.instagramBusinessId || 'Not set (INSTAGRAM_BUSINESS_ID)'}</div>
+            </div>
+            <div className="stat">
+              <strong>Page ID</strong>
+              <div className="muted">{ig.pageId || 'Not set (PAGE_ID)'}</div>
+            </div>
+          </div>
+          <p style={{ marginTop: 12 }}>Page token: <span className="chip">{ig.pageAccessTokenSet ? 'Present' : 'Missing PAGE_ACCESS_TOKEN'}</span></p>
+        </div>
+      );
+    }
+
+    function LogsView({ logs }) {
+      if (!logs?.length) return <p className="muted">No logs yet.</p>;
+      const rows = [...logs].reverse().slice(0, 25);
+      return (
+        <div className="section-body">
+          {rows.map((row, idx) => (
+            <div className="log-row" key={idx}>
+              <div className="muted">{row.ts}</div>
+              <div>
+                <strong>{row.message}</strong>
+                <div className="muted">{Object.entries(row)
+                  .filter(([k]) => !['ts', 'message'].includes(k))
+                  .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
+                  .join(' | ')}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
