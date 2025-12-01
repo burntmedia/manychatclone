@@ -86,32 +86,18 @@ Follow these steps in order—they match the latest Meta Business app flow and a
    ```
 
 3. **Run locally (without Docker)**
-  ```bash
-  cd backend
-  npm install   # no external deps, keeps package-lock for Docker builds
-  npm start
-  # Server listens on http://localhost:3000
-  ```
-
-   Open <http://localhost:3000/> for a simple UI to add keywords and see what’s configured without editing JSON.
+   ```bash
+   cd backend
+   npm install   # no external deps, keeps package-lock for Docker builds
+   npm start
+   # Server listens on http://localhost:3000
+   ```
 
 4. **Run in Docker**
-  ```bash
- docker compose up --build
-  ```
-  The API + UI listen on `http://localhost:3000` and persist `backend/data/keywords.json` via a bind mount.
-
-### Webhook verification checklist (works in Codespaces + ngrok)
-1. Set the same `VERIFY_TOKEN` in `backend/.env` and in the Meta Webhooks UI.
-2. Start the service from `backend/` so the `.env` is loaded: `npm start`.
-3. If you are using Codespaces, expose port **3000**. If you are using ngrok locally, run `ngrok http 3000` and use the tunneled HTTPS URL.
-4. Test the verification callback before pasting it into Meta:
    ```bash
-   # Replace the token with your VERIFY_TOKEN value
-   curl "http://localhost:3000/webhook?hub.mode=subscribe&hub.verify_token=$VERIFY_TOKEN&hub.challenge=123" -i
-   # Expect: HTTP/1.1 200 and body "123" when the token matches; HTTP 403 otherwise.
+   docker compose up --build
    ```
-5. Only after the local curl returns 200, use the public URL (Codespaces forward URL or ngrok URL) in the Webhooks UI.
+   The API listens on `http://localhost:3000` and persists `backend/data/keywords.json` via a bind mount.
 
 ## How the webhook handler behaves
 - **GET /webhook** performs Meta verification using `VERIFY_TOKEN`.

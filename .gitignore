@@ -1,6 +1,4 @@
 node_modules
 backend/node_modules
-backend/.env
-backend/data/keywords.json
 *.log
 .DS_Store

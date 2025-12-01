@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { log, logError } = require('../utils/logger');
 
-const DATA_PATH = path.join(__dirname, '..', '..', 'data', 'keywords.json');
+const DATA_PATH = path.join(process.cwd(), 'data', 'keywords.json');
 
 function ensureStore() {
   if (!fs.existsSync(DATA_PATH)) {
@@ -38,7 +38,6 @@ function upsertKeyword({ scope = 'global', postId, keywordConfig }) {
   if (scope === 'global') {
     store.global = upsertList(store.global || [], keywordConfig);
   } else if (scope === 'post' && postId) {
-    store.posts = store.posts || {};
     const current = store.posts[postId] || [];
     store.posts[postId] = upsertList(current, keywordConfig);
   } else {
