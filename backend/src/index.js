@@ -1,17 +1,12 @@
-const fs = require('fs');
-const path = require('path');
 const http = require('http');
 const url = require('url');
 const { handleVerification, handleWebhook } = require('./controllers/webhook');
-const { listKeywords, saveKeyword } = require('./controllers/keywords');
 const { loadEnv } = require('./utils/env');
 const { log } = require('./utils/logger');
 
 loadEnv();
 
 const PORT = process.env.PORT || 3000;
-
-const PUBLIC_DIR = path.join(process.cwd(), 'public');
 
 const server = http.createServer(async (req, res) => {
   const parsedUrl = url.parse(req.url, true);
@@ -38,26 +33,6 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify({ error: error.message }));
     }
     return;
-  }
-
-  if (req.method === 'GET' && parsedUrl.pathname === '/api/keywords') {
-    listKeywords(res);
-    return;
-  }
-
-  if (req.method === 'POST' && parsedUrl.pathname === '/api/keywords') {
-    try {
-      const body = await readBody(req);
-      saveKeyword(body, res);
-    } catch (error) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: error.message }));
-    }
-    return;
-  }
-
-  if (req.method === 'GET' && (parsedUrl.pathname === '/' || parsedUrl.pathname.startsWith('/assets/'))) {
-    return serveStatic(parsedUrl.pathname, res);
   }
 
   res.writeHead(404, { 'Content-Type': 'application/json' });
@@ -89,34 +64,5 @@ async function readBody(req) {
     });
 
     req.on('error', reject);
-  });
-}
-
-function serveStatic(pathname, res) {
-  const relativePath = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
-  const filePath = path.resolve(PUBLIC_DIR, relativePath);
-
-  if (!filePath.startsWith(PUBLIC_DIR)) {
-    res.writeHead(403, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Forbidden' }));
-    return;
-  }
-
-  fs.readFile(filePath, (err, content) => {
-    if (err) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Not found' }));
-      return;
-    }
-
-    const ext = path.extname(filePath);
-    const mimeTypes = {
-      '.html': 'text/html',
-      '.css': 'text/css',
-      '.js': 'application/javascript'
-    };
-    const contentType = mimeTypes[ext] || 'application/octet-stream';
-    res.writeHead(200, { 'Content-Type': contentType });
-    res.end(content);
   });
 }

@@ -86,20 +86,18 @@ Follow these steps in order—they match the latest Meta Business app flow and a
    ```
 
 3. **Run locally (without Docker)**
-  ```bash
-  cd backend
-  npm install   # no external deps, keeps package-lock for Docker builds
-  npm start
-  # Server listens on http://localhost:3000
-  ```
-
-   Open <http://localhost:3000/> for a simple UI to add keywords and see what’s configured without editing JSON.
+   ```bash
+   cd backend
+   npm install   # no external deps, keeps package-lock for Docker builds
+   npm start
+   # Server listens on http://localhost:3000
+   ```
 
 4. **Run in Docker**
-  ```bash
-  docker compose up --build
-  ```
-  The API + UI listen on `http://localhost:3000` and persist `backend/data/keywords.json` via a bind mount.
+   ```bash
+   docker compose up --build
+   ```
+   The API listens on `http://localhost:3000` and persists `backend/data/keywords.json` via a bind mount.
 
 ## How the webhook handler behaves
 - **GET /webhook** performs Meta verification using `VERIFY_TOKEN`.
