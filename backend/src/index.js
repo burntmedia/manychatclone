@@ -1,6 +1,7 @@
 const http = require('http');
 const url = require('url');
 const { handleVerification, handleWebhook } = require('./controllers/webhook');
+const { handleLoginRedirect, handleAuthCallback } = require('./controllers/auth');
 const { loadEnv } = require('./utils/env');
 const { log } = require('./utils/logger');
 
@@ -32,6 +33,16 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(400, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: error.message }));
     }
+    return;
+  }
+
+  if (req.method === 'GET' && parsedUrl.pathname === '/auth/login') {
+    await handleLoginRedirect(req, res);
+    return;
+  }
+
+  if (req.method === 'GET' && parsedUrl.pathname === '/auth/callback') {
+    await handleAuthCallback(req, res, parsedUrl.query);
     return;
   }
 
