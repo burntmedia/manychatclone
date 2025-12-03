@@ -2,6 +2,7 @@ const { log, logError } = require('../utils/logger');
 const { getKeywordsForPost } = require('../services/store');
 const { findMatch } = require('../services/matcher');
 const { sendPublicReply, sendPrivateMessage } = require('../services/metaClient');
+const { loadTokens } = require('./auth');
 
 function handleVerification(req, res, query) {
   const mode = query['hub.mode'];
@@ -27,12 +28,12 @@ async function handleWebhook(body) {
   for (const entry of body.entry) {
     const changes = entry.changes || [];
     for (const change of changes) {
-      await processChange(change);
+      await processChange(change, entry.id);
     }
   }
 }
 
-async function processChange(change) {
+async function processChange(change, entryPageId) {
   if (!change.value || !change.value.text) {
     return;
   }
@@ -52,9 +53,16 @@ async function processChange(change) {
   const commentReply = personalize(commentTemplates, { keyword: match.keyword, resourceUrl });
   const dmReply = personalize(dmTemplates, { keyword: match.keyword, resourceUrl });
 
-  log('Matched keyword, sending replies', { keyword: match.keyword, postId, commentId, userId: from?.id });
+  const pageId = change.value.page_id || entryPageId;
+  const accessToken = lookupPageToken(pageId);
 
-  const accessToken = process.env.PAGE_ACCESS_TOKEN;
+  if (!accessToken) {
+    logError('No access token found for page', null, { pageId });
+    return;
+  }
+
+  log('Matched keyword, sending replies', { keyword: match.keyword, postId, commentId, userId: from?.id, pageId });
+
   await sendPublicReply({ commentId, message: commentReply, accessToken });
 
   if (from?.id) {
@@ -67,6 +75,21 @@ function personalize(templates, context) {
   return chosen
     .replace(/{{keyword}}/g, context.keyword || '')
     .replace(/{{resourceUrl}}/g, context.resourceUrl || '');
+}
+
+function lookupPageToken(pageId) {
+  if (!pageId) {
+    return null;
+  }
+
+  try {
+    const tokens = loadTokens();
+    const entry = tokens[pageId];
+    return entry?.access_token || null;
+  } catch (error) {
+    logError('Failed to read token store', error);
+    return null;
+  }
 }
 
 module.exports = { handleVerification, handleWebhook };

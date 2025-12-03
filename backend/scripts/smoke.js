@@ -3,7 +3,7 @@ const { readStore } = require('../src/services/store');
 
 loadEnv();
 
-const missing = ['APP_ID', 'APP_SECRET', 'VERIFY_TOKEN', 'PAGE_ACCESS_TOKEN', 'SERVER_URL']
+const missing = ['META_APP_ID', 'META_APP_SECRET', 'META_REDIRECT_URI', 'VERIFY_TOKEN', 'SERVER_URL']
   .filter((key) => !process.env[key]);
 
 if (missing.length) {
