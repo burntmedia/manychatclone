@@ -1,13 +1,13 @@
 # Manychat-style local automation (Instagram + Facebook)
 
-This repo scaffolds a self-hosted responder that listens to Instagram/Facebook comment webhooks, matches comments against configurable keywords (with typo tolerance), and posts public replies plus DM follow-ups. It runs as a lightweight Node.js service inside Docker and stores keyword mappings in a simple JSON file.
+This repo scaffolds a self-hosted responder that listens to Instagram/Facebook comment webhooks, matches comments against configurable keywords (with typo tolerance), and posts public replies plus DM follow-ups. It runs as a lightweight Node.js service inside Docker and stores keyword mappings in a simple JSON file. The latest OAuth flow lets you connect **multiple Pages/Instagram Business Accounts** and stores their long-lived Page tokens in `backend/data/tokens.json`.
 
 ## What you need from the Meta developer portal (with steps)
 Follow these steps in order—they match the latest Meta Business app flow and avoid the “short-lived token” pitfalls.
 
 1) **Create a Meta developer app (type: Business)**
    - Visit <https://developers.facebook.com/apps> → **Create App** → choose **Business**.
-   - Note the **App ID** and **App Secret** from **Settings → Basic**; these go into `APP_ID` and `APP_SECRET`.
+   - Note the **App ID** and **App Secret** from **Settings → Basic**; these go into `META_APP_ID` and `META_APP_SECRET`.
 
 2) **Link your Facebook Page and Instagram Business account** (required for Instagram Graph API)
    - In **Facebook Business Settings**: **Accounts → Pages** → ensure your Page is added to the Business.
@@ -20,17 +20,19 @@ Follow these steps in order—they match the latest Meta Business app flow and a
      - **Webhooks** (to receive comment events).
      - **Messenger** (only if you want FB DMs; required for `pages_messaging`).
 
-4) **Grant permissions and generate a long-lived Page token (recommended: System User token)**
-   - In **Business Settings → Users → System Users**, create a **System User** (type: Admin for automation).
-   - Assign assets: choose your **Page** (and optionally the connected Instagram account) with full control.
-   - Click **Generate New Token**, select your app, and request these scopes: `instagram_manage_comments`, `instagram_basic`, `pages_read_engagement`, `pages_manage_engagement`, `pages_manage_metadata`, `pages_messaging` (needed for FB public replies + DMs).
-   - Choose the Page during token creation to embed Page access. The resulting token is long-lived and goes into `PAGE_ACCESS_TOKEN`.
+4) **Configure OAuth + environment values**
+   - In **App Dashboard → Use Cases → Customize → Client OAuth Settings**, set **Valid OAuth Redirect URIs** to `https://<SERVER_URL>/auth/callback`.
+   - In `backend/.env`, set:
+     - `META_APP_ID` and `META_APP_SECRET` from step 1.
+     - `META_REDIRECT_URI` to the exact HTTPS redirect you set above (for local dev with a tunnel, include the public URL).
+     - `VERIFY_TOKEN`: choose any random string; you will paste the same value in the webhook subscription UI.
+     - `SERVER_URL`: the public HTTPS URL Meta can reach (reverse proxy on your NAS or a temporary tunnel like Cloudflare or ngrok during setup).
 
-5) **Collect IDs for `.env`**
-   - `INSTAGRAM_BUSINESS_ID`: In **Business Settings → Accounts → Instagram accounts**, open the account and copy the **Instagram Business Account ID**. You can also query `/{page-id}?fields=instagram_business_account` with the Page token and use the returned `id`.
-   - `PAGE_ID` (needed for FB DMs and optional to log responses): Copy from your Page **About** tab or query `me?fields=id` with the Page token.
-   - `VERIFY_TOKEN`: choose any random string; you will paste the same value in the webhook subscription UI.
-   - `SERVER_URL`: the public HTTPS URL Meta can reach (reverse proxy on your NAS or a temporary tunnel like Cloudflare or ngrok during setup).
+5) **Connect Pages/IG accounts via OAuth (multi-account)**
+   - Run the service locally (`npm start` in `backend`) or in Docker, ensuring it is reachable at `https://<SERVER_URL>`.
+   - Visit `https://<SERVER_URL>/auth/login` and complete the Meta login. The flow requests the required scopes (`pages_*`, `instagram_manage_comments`, `instagram_manage_messages`).
+   - If multiple Pages are in the business, either pick the one with an Instagram Business Account attached or pass `?page_id=<PAGE_ID>` to `/auth/callback` to force a specific Page.
+   - The backend exchanges tokens, fetches the Page-specific long-lived token, and writes it to `backend/data/tokens.json` along with the Instagram Business Account ID. Repeat the login for each Page you want the webhook handler to manage.
 
 6) **Subscribe the webhook**
    - In **App Dashboard → Webhooks**, choose **Instagram** and/or **Page** and click **Subscribe to this object**.
@@ -86,18 +88,21 @@ Follow these steps in order—they match the latest Meta Business app flow and a
    ```
 
 3. **Run locally (without Docker)**
-   ```bash
-   cd backend
-   npm install   # no external deps, keeps package-lock for Docker builds
-   npm start
-   # Server listens on http://localhost:3000
-   ```
+ ```bash
+  cd backend
+  npm install   # no external deps, keeps package-lock for Docker builds
+  npm start
+  # Server listens on http://localhost:3000
+  ```
+   Open `https://<SERVER_URL>/auth/login` while the server is running to authorize each Page/IG account you want connected; the
+   resulting long-lived Page tokens land in `backend/data/tokens.json`.
 
 4. **Run in Docker**
-   ```bash
-   docker compose up --build
-   ```
-   The API listens on `http://localhost:3000` and persists `backend/data/keywords.json` via a bind mount.
+  ```bash
+  docker compose up --build
+  ```
+   The API listens on `http://localhost:3000` and persists `backend/data/keywords.json` plus the OAuth token store via a bind
+   mount. Use your public URL (with TLS termination) to open `/auth/login` and connect Pages when running this way.
 
 ## How the webhook handler behaves
 - **GET /webhook** performs Meta verification using `VERIFY_TOKEN`.
@@ -105,7 +110,7 @@ Follow these steps in order—they match the latest Meta Business app flow and a
   1. Loads global + post-specific keyword configs.
   2. Fuzzy-matches the comment text against keyword variants (case-insensitive, one-character typo tolerance).
   3. Picks a random template for the public comment reply and DM reply, replacing `{{keyword}}` and `{{resourceUrl}}` placeholders.
-  4. Calls the Graph API to post the reply and send the DM using `PAGE_ACCESS_TOKEN`.
+  4. Calls the Graph API to post the reply and send the DM using the Page token looked up in `backend/data/tokens.json` (one entry per connected Page).
 
 ## Scheduling + post IDs
 You can preconfigure scheduled content by adding the **post ID** before it goes live:
@@ -115,7 +120,7 @@ Add those IDs under `posts` in `keywords.json` so matching works the moment comm
 
 ## Operational tips
 - Use a reverse proxy/HTTPS terminator on your NAS (Traefik/Caddy/Nginx) to expose `/webhook` publicly.
-- Regenerate long-lived Page tokens periodically (Meta tokens expire); store them in `backend/.env`.
+- Regenerate long-lived Page tokens periodically (Meta tokens expire) by revisiting `/auth/login`; the service will refresh the entry in `backend/data/tokens.json`.
 - For Messenger DMs, ensure the Page has the **messaging** product and the user has messaged the Page before (platform requirement).
 - Logs are JSON lines; pipe them to `jq` for readability during debugging.
 
