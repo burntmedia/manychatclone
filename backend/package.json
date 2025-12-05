@@ -12,6 +12,8 @@
   "keywords": ["meta", "instagram", "facebook", "webhook"],
   "author": "",
   "license": "MIT",
-  "dependencies": {},
+  "dependencies": {
+    "express": "^4.19.2"
+  },
   "devDependencies": {}
 }
