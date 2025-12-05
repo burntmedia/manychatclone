@@ -149,6 +149,7 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });
 });
 
-app.listen(PORT, () => {
-  log('Server listening', { port: PORT });
+app.listen(PORT, '0.0.0.0', () => {
+  log('Server listening', { port: PORT, host: '0.0.0.0' });
 });
+
