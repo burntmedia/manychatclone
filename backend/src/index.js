@@ -12,6 +12,21 @@ loadEnv();
 const PORT = process.env.PORT || 3000;
 const app = express();
 
+// Allow cross-origin requests from the dashboard
+const allowOrigin = process.env.DASHBOARD_ORIGIN || 'https://dashboard.burnt.media';
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', allowOrigin);
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(204);
+    return;
+  }
+
+  next();
+});
+
 app.use((req, _res, next) => {
   log('Incoming request', { method: req.method, url: req.originalUrl, headers: req.headers });
   next();
