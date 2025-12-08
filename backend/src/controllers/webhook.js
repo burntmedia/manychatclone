@@ -83,7 +83,7 @@ async function processInstagramComment(change, entryId) {
     return;
   }
 
-  const commentId = value.id || value.comment_id;
+  const commentId = value.comment_id || value.id;
   const postId = value.post_id || value.media_id;
   const text = value.text || '';
   const userId = value.from?.id;
