@@ -35,7 +35,8 @@ export default function Posts() {
           setPosts(data)
           setError('')
         }
-      } catch (err) {
+      } catch (error) {
+        console.debug('Failed to fetch posts', error)
         if (!ignore) {
           setError('Unable to reach backend yet, showing sample data.')
           setPosts(samplePosts)

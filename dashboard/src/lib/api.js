@@ -33,9 +33,11 @@ async function request(path, options = {}) {
 }
 
 export const api = {
-  fetchPosts: (params) => request(`/posts${toQuery(params)}`),
-  fetchAutomations: () => request('/automations'),
-  fetchKeywords: () => request('/keywords'),
+  fetchPosts: (params, options) => request(`/posts${toQuery(params)}`, options),
+  fetchAutomations: (options) => request('/automations', options),
+  fetchKeywords: (options) => request('/keywords', options),
+  fetchLogs: (options) => request('/logs', options),
+  fetchHealth: (options) => request('/health', options),
   createAutomation: (payload) =>
     request('/automations', { method: 'POST', body: JSON.stringify(payload) }),
   addKeyword: (payload) =>

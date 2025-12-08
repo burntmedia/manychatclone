@@ -1,0 +1,17 @@
+[
+  {
+    "id": "log_1",
+    "message": "Sent reply to Instagram comment",
+    "created_time": "2025-01-05T10:24:00Z"
+  },
+  {
+    "id": "log_2",
+    "message": "DM reply delivered",
+    "created_time": "2025-01-05T08:10:00Z"
+  },
+  {
+    "id": "log_3",
+    "message": "Automation triggered on new keyword",
+    "created_time": "2025-01-04T19:45:00Z"
+  }
+]

@@ -83,6 +83,15 @@ app.get('/keywords', async (req, res) => {
   }
 });
 
+app.get('/logs', async (_req, res) => {
+  try {
+    const logs = await readJson('logs.json', []);
+    res.json(logs);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to load logs' });
+  }
+});
+
 app.post('/keywords', async (req, res) => {
   const keyword = (req.body?.keyword || '').trim();
   if (!keyword) {
