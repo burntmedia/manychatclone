@@ -4,6 +4,37 @@ const { findMatch } = require('../services/matcher');
 const { sendPublicReply, sendPrivateMessage } = require('../services/metaClient');
 const { loadTokens } = require('./auth');
 
+const processedComments = new Map();
+const PROCESSED_COMMENT_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+function isCommentProcessed(key) {
+  const entry = processedComments.get(key);
+
+  if (!entry) {
+    return false;
+  }
+
+  if (entry.expiresAt <= Date.now()) {
+    processedComments.delete(key);
+    return false;
+  }
+
+  return true;
+}
+
+function purgeExpiredProcessed(now = Date.now()) {
+  for (const [key, entry] of processedComments.entries()) {
+    if (entry.expiresAt <= now) {
+      processedComments.delete(key);
+    }
+  }
+}
+
+function markCommentProcessed(key, ttlMs = PROCESSED_COMMENT_TTL_MS) {
+  processedComments.set(key, { expiresAt: Date.now() + ttlMs });
+  purgeExpiredProcessed();
+}
+
 function handleVerification(req, res) {
   log('Webhook verification received', { query: req.query, headers: req.headers });
 
@@ -135,6 +166,12 @@ async function handleCommentReply({ entryId, commentId, postId, text, userId, so
     return;
   }
 
+  const dedupeKey = `${source || 'unknown'}:${commentId}`;
+  if (isCommentProcessed(dedupeKey)) {
+    log('Skipping already processed comment', { commentId, source, postId });
+    return;
+  }
+
   const { pageId, accessToken } = resolveAccess(entryId);
   if (!accessToken) {
     logError('No access token available for webhook entry', null, { entryId, source });
@@ -178,6 +215,8 @@ async function handleCommentReply({ entryId, commentId, postId, text, userId, so
       logError('Failed to send private message', error, { userId, source });
     }
   }
+
+  markCommentProcessed(dedupeKey);
 }
 
 function personalize(templates, context) {
