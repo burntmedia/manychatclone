@@ -38,6 +38,19 @@ async function processChange(change, entryPageId) {
     return;
   }
   const { text, comment_id: commentId, post_id: postId, from } = change.value;
+
+  const pageId = resolvePageId(entryPageId);
+  if (!pageId) {
+    logError("Unable to resolve pageId for webhook entry", null, { entryPageId });
+    return;
+  }
+
+  const accessToken = lookupPageToken(pageId);
+  if (!accessToken) {
+    logError("No access token found for page", null, { pageId });
+    return;
+  }
+
   const keywordSets = getKeywordsForPost(postId);
   const match = findMatch(text, keywordSets);
 
@@ -53,14 +66,6 @@ async function processChange(change, entryPageId) {
   const commentReply = personalize(commentTemplates, { keyword: match.keyword, resourceUrl });
   const dmReply = personalize(dmTemplates, { keyword: match.keyword, resourceUrl });
 
-  const pageId = change.value.page_id || entryPageId;
-  const accessToken = lookupPageToken(pageId);
-
-  if (!accessToken) {
-    logError('No access token found for page', null, { pageId });
-    return;
-  }
-
   log('Matched keyword, sending replies', { keyword: match.keyword, postId, commentId, userId: from?.id, pageId });
 
   await sendPublicReply({ commentId, message: commentReply, accessToken });
@@ -69,6 +74,7 @@ async function processChange(change, entryPageId) {
     await sendPrivateMessage({ userId: from.id, message: dmReply, accessToken });
   }
 }
+
 
 function personalize(templates, context) {
   const chosen = templates[Math.floor(Math.random() * templates.length)];

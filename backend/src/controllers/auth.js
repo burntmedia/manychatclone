@@ -102,6 +102,11 @@ async function handleAuthCallback(req, res, query) {
       access_token: pageAccessToken,
       expires_at: expiresAt
     };
+
+    // ---- NEW PATCH: Add reverse IG → Page lookup ----
+    tokens.igToPage = tokens.igToPage || {};
+    tokens.igToPage[targetPage.instagram_business_account.id] = targetPage.id;
+
     saveTokens(tokens);
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
