@@ -1,6 +1,6 @@
 // Lightweight API client. Point VITE_API_URL to your Express backend (e.g.
 // http://localhost:3000) and the helpers below will use that base URL.
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://bot.burnt.media'
 
 function toQuery(params = {}) {
   const query = new URLSearchParams(params)
