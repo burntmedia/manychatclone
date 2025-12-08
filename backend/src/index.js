@@ -1,6 +1,7 @@
 const express = require('express');
 const { handleVerification, handleWebhook } = require('./controllers/webhook');
 const { handleLoginRedirect, handleAuthCallback, loadTokens } = require('./controllers/auth');
+const apiRouter = require('./routes/api');
 const { loadEnv } = require('./utils/env');
 const { log } = require('./utils/logger');
 const { readJson, writeJson } = require('./utils/jsonStore');
@@ -35,6 +36,8 @@ app.use((err, req, res, next) => {
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
+
+app.use('/api', apiRouter);
 
 app.get('/webhook', (req, res) => {
   handleVerification(req, res);
