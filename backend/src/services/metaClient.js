@@ -3,18 +3,21 @@ const { log, logError } = require('../utils/logger');
 async function sendPublicReply({ commentId, message, accessToken }) {
   if (!commentId || !message || !accessToken) {
     logError('Missing fields for public reply', null, { commentId, hasMessage: Boolean(message), hasAccessToken: Boolean(accessToken) });
-    return;
+    return null;
   }
 
-  const url = `https://graph.facebook.com/v21.0/${commentId}/replies`;
+  const url = `https://graph.facebook.com/v21.0/${encodeURIComponent(commentId)}/replies`;
   const body = { message, access_token: accessToken };
-  await postJson(url, body, 'public reply');
+  const payload = await postJson(url, body, 'public reply', { commentId });
+
+  log('Instagram public reply sent', { commentId, payload });
+  return payload;
 }
 
 async function sendPrivateMessage({ userId, message, accessToken }) {
   if (!userId || !message || !accessToken) {
     logError('Missing fields for private message', null, { userId, hasMessage: Boolean(message), hasAccessToken: Boolean(accessToken) });
-    return;
+    return null;
   }
 
   const url = `https://graph.facebook.com/v21.0/me/messages`;
@@ -24,10 +27,10 @@ async function sendPrivateMessage({ userId, message, accessToken }) {
     access_token: accessToken
   };
 
-  await postJson(url, body, 'private message');
+  return postJson(url, body, 'private message', { userId });
 }
 
-async function postJson(url, body, label) {
+async function postJson(url, body, label, context = {}) {
   try {
     const response = await fetch(url, {
       method: 'POST',
@@ -35,14 +38,25 @@ async function postJson(url, body, label) {
       body: JSON.stringify(body)
     });
 
-    const payload = await response.json();
-    if (!response.ok) {
-      logError(`Meta API ${label} failed`, null, { status: response.status, payload });
-      return;
+    let payload;
+    try {
+      payload = await response.json();
+    } catch (parseError) {
+      logError(`Meta API ${label} response parse failed`, parseError, { url, context });
+      throw parseError;
     }
-    log(`Meta API ${label} succeeded`, { payload });
+
+    if (!response.ok) {
+      const error = new Error(`Meta API ${label} failed with status ${response.status}`);
+      logError(`Meta API ${label} failed`, error, { status: response.status, payload, context });
+      throw error;
+    }
+
+    log(`Meta API ${label} succeeded`, { payload, context });
+    return payload;
   } catch (error) {
-    logError(`Meta API ${label} call failed`, error);
+    logError(`Meta API ${label} call failed`, error, context);
+    throw error;
   }
 }
 
