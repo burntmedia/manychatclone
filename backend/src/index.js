@@ -1,32 +1,60 @@
 const express = require('express');
 const { handleVerification, handleWebhook } = require('./controllers/webhook');
-const { handleLoginRedirect, handleAuthCallback } = require('./controllers/auth');
+const { handleLoginRedirect, handleAuthCallback, loadTokens } = require('./controllers/auth');
 const { loadEnv } = require('./utils/env');
 const { log } = require('./utils/logger');
 const { readJson, writeJson } = require('./utils/jsonStore');
+const { jsonWithRawBody } = require('./middleware/rawBody');
 
 loadEnv();
 
 const PORT = process.env.PORT || 3000;
 const app = express();
 
-app.use(express.json());
+app.use((req, _res, next) => {
+  log('Incoming request', { method: req.method, url: req.originalUrl, headers: req.headers });
+  next();
+});
+
+app.use(jsonWithRawBody());
+
+// Ensure malformed JSON bodies are logged and do not crash the server
+app.use((err, req, res, next) => {
+  if (err) {
+    log('Request body parsing error', { error: err.message, rawBody: req.rawBody, url: req.originalUrl });
+    if (req.path === '/webhook') {
+      res.status(200).json({ received: true });
+      return;
+    }
+    res.status(400).json({ error: 'Invalid JSON payload' });
+    return;
+  }
+  next();
+});
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
 app.get('/webhook', (req, res) => {
-  handleVerification(req, res, req.query);
+  handleVerification(req, res);
 });
 
 app.post('/webhook', async (req, res) => {
-  try {
-    await handleWebhook(req.body || {});
-    res.json({ received: true });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
+  await handleWebhook(req, res);
+});
+
+app.get('/debug', (req, res) => {
+  const tokens = (() => {
+    try {
+      return loadTokens();
+    } catch (_e) {
+      return null;
+    }
+  })();
+
+  log('Debug endpoint called', { tokensPresent: !!tokens, tokenKeys: tokens ? Object.keys(tokens) : [] });
+  res.json({ status: 'OK', tokens: tokens ? Object.keys(tokens) : [] });
 });
 
 app.get('/auth/login', async (req, res) => {
